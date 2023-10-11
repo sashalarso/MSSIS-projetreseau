@@ -1,11 +1,15 @@
 import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+
+import javax.swing.plaf.synth.SynthStyle;
 
 public class PcapParser {
     public static void main(String[] args) {
-        String pcapFilePath = "test.pcap";
+        String pcapFilePath = "arp.pcap";
 
         try (FileInputStream fis = new FileInputStream(pcapFilePath);
              DataInputStream dis = new DataInputStream(fis)) {
@@ -58,19 +62,20 @@ public class PcapParser {
         int capturedPacketLength = dis.readInt();
         int originalPacketLength = dis.readInt();
         
-        // Print Packet information
+        
         System.out.println("Packet " + packetNumber + ":");
         System.out.println("Timestamp (seconds): " + Integer.toHexString(timestampSeconds));
-        System.out.println("Timestamp (microseconds): " + Integer.toHexString(timestampMicroseconds));
+        
         System.out.println("Captured Packet Length: " + (Integer.reverseBytes(capturedPacketLength)));
         System.out.println("Original Packet Length: " + originalPacketLength);
 
-        // Read and parse Ethernet frame (Assuming Ethernet II frame)
+        
         byte[] ethernetFrame = new byte[Integer.reverseBytes(capturedPacketLength)];
+        
         System.out.println(dis.available());
         dis.readFully(ethernetFrame);
         
-        // Extract source and destination MAC addresses
+       
         byte[] sourceMAC = new byte[6];
         byte[] destMAC = new byte[6];
         byte[] typeIp = new byte[2];
@@ -81,9 +86,65 @@ public class PcapParser {
         System.out.println("Source MAC Address: " + macAddressToString(sourceMAC));
         System.out.println("Destination MAC Address: " + macAddressToString(destMAC));
         System.out.println("Type of IP: " + macAddressToString(typeIp));
-        // You can continue parsing other layers like IP and TCP/UDP as needed.
+       
+        if (macAddressToString(typeIp).equals("08:00")){
+            byte[] ipsource=new byte[4];
+            byte[] ipdest=new byte[4];
+            byte[] protocol = new byte[1];
+
+            System.arraycopy(ethernetFrame, 30, ipdest, 0, 4);
+            System.arraycopy(ethernetFrame, 26, ipsource, 0, 4);
+            System.arraycopy(ethernetFrame, 23, protocol, 0, 1);
+            System.out.println("IP source : " + hexIPToIPAddress(macAddressToString(ipsource)) );
+            System.out.println("IP destination : " + hexIPToIPAddress(macAddressToString(ipdest)) );
+            System.out.println("Protocol : " + macAddressToString(protocol));   
+            
+            if (macAddressToString(protocol).equals("06")){
+                 byte[] sourceport=new byte[2];
+                byte[] destport=new byte[2];
+
+                System.arraycopy(ethernetFrame, 34, sourceport, 0, 2);
+                System.arraycopy(ethernetFrame, 36, destport, 0, 2);
+
+                System.out.println("Source port : " + hexToDecimal(macAddressToString(sourceport)));
+                System.out.println("Destination port : " + hexToDecimal(macAddressToString(destport)) );
         
-        System.out.println();
+
+                System.out.println();
+            }
+            else if (macAddressToString(protocol).equals("01")){
+                byte[] typeicmp = new byte[1];
+
+                System.arraycopy(ethernetFrame, 34, typeicmp, 0, 1);
+
+                System.out.println("ICMP de type " + macAddressToString(typeicmp));
+            }
+            
+           
+        }
+
+        else if(macAddressToString(typeIp).equals("08:06")){
+            System.out.println("arp");
+        }
+        
+
+        
+
+        
+
+    }
+
+    public static InetAddress bytesToIpAddress(byte[] ipAddressBytes) {
+        try {
+            if (ipAddressBytes.length == 4) {
+                return InetAddress.getByAddress(ipAddressBytes);
+            } else {
+                throw new IllegalArgumentException("Le tableau de bytes doit contenir exactement 4 éléments pour une adresse IP.");
+            }
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private static String macAddressToString(byte[] macAddress) {
@@ -93,4 +154,37 @@ public class PcapParser {
         }
         return sb.substring(0, sb.length() - 1); // Remove the trailing ':'
     }
+    public static int hexToDecimal(String hex) {
+        try {
+            return Integer.parseInt(hex.replace(":", ""), 16);
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+            return -1; // Remplacer par une valeur de gestion d'erreur appropriée
+        }
+    }
+    public static InetAddress hexIPToIPAddress(String hexIP) {
+        // Nettoyez la chaîne hexadécimale pour éliminer les délimiteurs, le cas échéant
+        hexIP = hexIP.replaceAll(":", "");
+
+        if (hexIP.length() != 8) {
+            System.err.println("La chaîne hexadécimale doit contenir exactement 8 caractères.");
+            return null;
+        }
+
+        try {
+            // Convertissez chaque paire de caractères hexadécimaux en un octet
+            byte[] ipAddressBytes = new byte[4];
+            for (int i = 0; i < 4; i++) {
+                String byteHex = hexIP.substring(i * 2, i * 2 + 2);
+                ipAddressBytes[i] = (byte) Integer.parseInt(byteHex, 16);
+            }
+
+            return InetAddress.getByAddress(ipAddressBytes);
+        } catch (UnknownHostException | NumberFormatException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+
 }
