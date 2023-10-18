@@ -119,12 +119,46 @@ public class PcapParser {
 
                 System.out.println("ICMP de type " + macAddressToString(typeicmp));
             }
+            else if(macAddressToString(protocol).equals("11")){
+                byte[] sourceport=new byte[2];
+                byte[] destport=new byte[2];
+
+                System.arraycopy(ethernetFrame, 34, sourceport, 0, 2);
+                System.arraycopy(ethernetFrame, 36, destport, 0, 2);
+                String sport=Integer.toString(hexToDecimal(macAddressToString(sourceport)));
+                String dport=Integer.toString(hexToDecimal(macAddressToString(destport)));
+                System.out.println("Source port : " + sport );
+                System.out.println("Destination port : " + dport );
+                System.out.println("UDP");
+
+                if(sport.equals("53") || dport.equals("53")){
+                    
+                }
+
+                
+            }
             
            
         }
 
         else if(macAddressToString(typeIp).equals("08:06")){
-            System.out.println("arp");
+            byte[] typearp=new byte[2];
+            byte[] macsource=new byte[6];
+            byte[] macdest=new byte[6];
+            byte[] ipsource=new byte[4];
+            byte[] ipdest=new byte[4];
+ 
+            System.arraycopy(ethernetFrame, 20, typearp,0, 2);
+            System.arraycopy(ethernetFrame, 22, macsource,0, 6);
+            System.arraycopy(ethernetFrame, 28, ipsource,0, 4);
+            System.arraycopy(ethernetFrame, 32, macdest,0, 6);
+            System.arraycopy(ethernetFrame, 38, ipdest,0, 4);
+
+            System.out.println("ARP de type " + macAddressToString(typearp));
+            System.out.println("MAC source : " + macAddressToString(macsource));
+            System.out.println("MAC dest : " + macAddressToString(macdest));
+            System.out.println("IP source : " + hexIPToIPAddress(macAddressToString(ipsource)));
+            System.out.println("IP dest : " + hexIPToIPAddress(macAddressToString(ipdest)));
         }
         
 
