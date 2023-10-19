@@ -3,13 +3,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
-
-import javax.swing.plaf.synth.SynthStyle;
 
 public class PcapParser {
     public static void main(String[] args) {
-        String pcapFilePath = "arp.pcap";
+        String pcapFilePath = "http.pcap";
 
         try (FileInputStream fis = new FileInputStream(pcapFilePath);
              DataInputStream dis = new DataInputStream(fis)) {
@@ -108,9 +105,31 @@ public class PcapParser {
 
                 System.out.println("Source port : " + hexToDecimal(macAddressToString(sourceport)));
                 System.out.println("Destination port : " + hexToDecimal(macAddressToString(destport)) );
+
+                String sport=Integer.toString(hexToDecimal(macAddressToString(sourceport)));
+                String dport=Integer.toString(hexToDecimal(macAddressToString(destport)));
         
 
                 System.out.println();
+
+                
+                if(sport.equals("80") || dport.equals("80")){
+                    
+                    if(sport.equals("80")){
+                        System.out.println("HTTP response");
+                        byte[] httpversion =new byte[8];
+                        byte[] httpstatuscode=new byte [3];
+
+                        System.arraycopy(ethernetFrame, 66, httpversion, 0, 8);
+                        System.arraycopy(ethernetFrame, 75, httpstatuscode, 0, 3);
+
+                        System.out.println(macAddressToString(httpversion));
+                        System.out.println(macAddressToString(httpstatuscode));
+                    }
+                    else if (dport.equals("80")){
+                        System.out.println("HTTP request");
+                    }
+                }
             }
             else if (macAddressToString(protocol).equals("01")){
                 byte[] typeicmp = new byte[1];
@@ -132,8 +151,62 @@ public class PcapParser {
                 System.out.println("UDP");
 
                 if(sport.equals("53") || dport.equals("53")){
+                    System.out.println("DNS");
+                    byte [] dnsqr=new byte[2];
+
+                    System.arraycopy(ethernetFrame, 44, dnsqr, 0, 2);
                     
+                    byte[] dnsclass =new byte [2];
+                    byte[] dnstype=new byte[2];
+                    if (macAddressToString(dnsqr).equals("01:00")){
+                        System.out.println("DNS query");
+                        System.arraycopy(ethernetFrame, Integer.reverseBytes(capturedPacketLength)-2, dnsclass, 0, 2);
+                        System.arraycopy(ethernetFrame, Integer.reverseBytes(capturedPacketLength)-4, dnstype, 0, 2);
+                        
+                        if (macAddressToString(dnsclass).equals("00:01")){
+                            System.out.println("DNS Class : IN");
+                        }
+                        if (macAddressToString(dnstype).equals("00:01")){
+                            System.out.println("DNS Type : AAAA");
+                        }
+                        if (macAddressToString(dnstype).equals("00:1C")){
+                            System.out.println("DNS Type : A");
+                        }
+
+                    }
+                    else if (macAddressToString(dnsqr).equals("81:80")){
+                        System.out.println("DNS answer");
+                    }
+                    
+
+
+
                 }
+                if(sport.equals("443") || dport.equals("443")){
+                    System.out.println("QUIC");
+                }
+                if(sport.equals("67") || dport.equals("68") || sport.equals("68") || dport.equals("67")){
+                    System.out.println("DHCP");
+                    byte[] dhcpqr =new byte[1];
+                    byte[] dhcpserver=new byte[4];
+                    byte[] dhcpclient=new byte[4];
+                    
+                    System.arraycopy(ethernetFrame, 42, dhcpqr, 0, 1);
+                    System.arraycopy(ethernetFrame, 54, dhcpclient, 0, 4);
+                    System.arraycopy(ethernetFrame, 62, dhcpserver, 0, 4);
+                    
+                    
+                    if (macAddressToString(dhcpqr).equals("01")){
+                        System.out.println("DHCP request");
+                    }
+                    if (macAddressToString(dhcpqr).equals("02")){
+                        System.out.println("DHCP reply");
+                    }
+                    System.out.println("DHCP client adress : " + hexIPToIPAddress(macAddressToString(dhcpclient)));
+                    System.out.println("DHCP server adress : " + hexIPToIPAddress(macAddressToString(dhcpserver)));
+                }
+                
+                
 
                 
             }
