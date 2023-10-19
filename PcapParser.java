@@ -3,10 +3,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 
 public class PcapParser {
     public static void main(String[] args) {
-        String pcapFilePath = "http.pcap";
+        String pcapFilePath = "arpv.pcap";
 
         try (FileInputStream fis = new FileInputStream(pcapFilePath);
              DataInputStream dis = new DataInputStream(fis)) {
@@ -14,7 +18,7 @@ public class PcapParser {
             // Parse the Global Header
             parseGlobalHeader(dis);
 
-            int packetNumber = 0;
+            int packetNumber = 1;
 
             while (dis.available() > 0) {
                 // Parse each packet
@@ -53,15 +57,16 @@ public class PcapParser {
 
     private static void parsePacket(DataInputStream dis, int packetNumber) throws IOException {
         // Parse each packet
-        
+        String the_protocol="";
         int timestampSeconds = dis.readInt();
         int timestampMicroseconds = dis.readInt();
         int capturedPacketLength = dis.readInt();
         int originalPacketLength = dis.readInt();
         
-        
+        System.out.println();
         System.out.println("Packet " + packetNumber + ":");
-        System.out.println("Timestamp (seconds): " + Integer.toHexString(timestampSeconds));
+        int date_packet=hexToDecimale(Integer.toHexString(Integer.reverseBytes(timestampSeconds)));
+        System.out.println("Timestamp (seconds): " +  convertTimestampToDate(date_packet));
         
         System.out.println("Captured Packet Length: " + (Integer.reverseBytes(capturedPacketLength)));
         System.out.println("Original Packet Length: " + originalPacketLength);
@@ -109,12 +114,12 @@ public class PcapParser {
                 String sport=Integer.toString(hexToDecimal(macAddressToString(sourceport)));
                 String dport=Integer.toString(hexToDecimal(macAddressToString(destport)));
         
-
+                the_protocol="TCP";
                 System.out.println();
 
                 
                 if(sport.equals("80") || dport.equals("80")){
-                    
+                    the_protocol="HTTP";
                     if(sport.equals("80")){
                         System.out.println("HTTP response");
                         byte[] httpversion =new byte[8];
@@ -123,8 +128,8 @@ public class PcapParser {
                         System.arraycopy(ethernetFrame, 66, httpversion, 0, 8);
                         System.arraycopy(ethernetFrame, 75, httpstatuscode, 0, 3);
 
-                        System.out.println(macAddressToString(httpversion));
-                        System.out.println(macAddressToString(httpstatuscode));
+                        System.out.println(hexStringToText(macAddressToString(httpversion)));
+                        System.out.println((macAddressToString(httpstatuscode)));
                     }
                     else if (dport.equals("80")){
                         System.out.println("HTTP request");
@@ -133,7 +138,7 @@ public class PcapParser {
             }
             else if (macAddressToString(protocol).equals("01")){
                 byte[] typeicmp = new byte[1];
-
+                the_protocol="ICMP";
                 System.arraycopy(ethernetFrame, 34, typeicmp, 0, 1);
 
                 System.out.println("ICMP de type " + macAddressToString(typeicmp));
@@ -141,7 +146,7 @@ public class PcapParser {
             else if(macAddressToString(protocol).equals("11")){
                 byte[] sourceport=new byte[2];
                 byte[] destport=new byte[2];
-
+                the_protocol="UDP";
                 System.arraycopy(ethernetFrame, 34, sourceport, 0, 2);
                 System.arraycopy(ethernetFrame, 36, destport, 0, 2);
                 String sport=Integer.toString(hexToDecimal(macAddressToString(sourceport)));
@@ -151,7 +156,7 @@ public class PcapParser {
                 System.out.println("UDP");
 
                 if(sport.equals("53") || dport.equals("53")){
-                    System.out.println("DNS");
+                    the_protocol="DNS";
                     byte [] dnsqr=new byte[2];
 
                     System.arraycopy(ethernetFrame, 44, dnsqr, 0, 2);
@@ -183,10 +188,10 @@ public class PcapParser {
 
                 }
                 if(sport.equals("443") || dport.equals("443")){
-                    System.out.println("QUIC");
+                    the_protocol="QUIC";
                 }
                 if(sport.equals("67") || dport.equals("68") || sport.equals("68") || dport.equals("67")){
-                    System.out.println("DHCP");
+                    the_protocol="DHCP";
                     byte[] dhcpqr =new byte[1];
                     byte[] dhcpserver=new byte[4];
                     byte[] dhcpclient=new byte[4];
@@ -232,12 +237,14 @@ public class PcapParser {
             System.out.println("MAC dest : " + macAddressToString(macdest));
             System.out.println("IP source : " + hexIPToIPAddress(macAddressToString(ipsource)));
             System.out.println("IP dest : " + hexIPToIPAddress(macAddressToString(ipdest)));
+
+            the_protocol="ARP";
         }
         
 
         
 
-        
+        System.out.println(the_protocol);
 
     }
 
@@ -290,6 +297,39 @@ public class PcapParser {
         } catch (UnknownHostException | NumberFormatException e) {
             e.printStackTrace();
             return null;
+        }
+    }
+    public static String hexStringToText(String hexString) {
+        String[] hexValues = hexString.split(":");
+        StringBuilder textBuilder = new StringBuilder();
+
+        for (String hexValue : hexValues) {
+            try {
+                int intValue = Integer.parseInt(hexValue, 16);
+                if (intValue >= 0 && intValue <= 255) {
+                    textBuilder.append((char) intValue);
+                } else {
+                    throw new IllegalArgumentException("Invalid hex value: " + hexValue);
+                }
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid hex value: " + hexValue);
+            }
+        }
+
+        return textBuilder.toString();
+    }
+    public static Date convertTimestampToDate(int timestamp) {
+        
+        return new java.util.Date((long)timestamp*1000);
+    }
+    public static int hexToDecimale(String hex) {
+        try {
+            // Utilisez Integer.parseInt avec la base 16 (hexadécimal)
+            int decimal = Integer.parseInt(hex, 16);
+            return decimal;
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+            return -1; // Gestion de l'erreur
         }
     }
     
