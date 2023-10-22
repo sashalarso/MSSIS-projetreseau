@@ -5,9 +5,9 @@ public class TcpSegment {
     public String dmacadress;
     public String sip;
     public String dip;
-    public int seq;
-    public int ack;
-    public TcpSegment(int sport,int dport,String smacadress,String dmacadress, String sip, String dip,int seq, int ack){
+    public Long seq;
+    public Long ack;
+    public TcpSegment(int sport,int dport,String smacadress,String dmacadress, String sip, String dip,Long seq, Long ack){
         this.sport = sport;
         this.dport =  dport;
         this.smacadress= smacadress;
