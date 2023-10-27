@@ -10,6 +10,7 @@ import java.util.Date;
 public class PcapParser {
 
     public static ArrayList<Object> packets=new ArrayList<Object>();
+    public static ArrayList<TCP> tcps =new ArrayList<TCP>();
     public static void main(String[] args) {
 
         if(args[0].equals("help")){
@@ -27,25 +28,26 @@ public class PcapParser {
         try (FileInputStream fis = new FileInputStream(pcapFilePath);
              DataInputStream dis = new DataInputStream(fis)) {
 
-            // Parse the Global Header
+            
             parseGlobalHeader(dis);
 
             int packetNumber = 1;
 
             while (dis.available() > 0) {
-                // Parse each packet
+              
                 parsePacket(dis, packetNumber);
                 packetNumber++;
             }
             System.out.println(packets.size());
-
+            System.out.println(tcps.size());
             
             
         } catch (IOException e) {
             e.printStackTrace();
         }
+        int j=0;
         for (Object element : packets) {
-            
+            j=j+1;
             if(element.getClass().getName().equals(args[1])){
                 System.out.println(element);
             }
@@ -58,12 +60,11 @@ public class PcapParser {
                 }
                 
             }
-            else if(args[1].equals("TCP")){
-                if(element.getClass().getName().equals("HTTP") ){
-                    System.out.println(element);
-                }
-                
+                       
+            else if(estNombreEntier(args[1]) && j==Integer.parseInt(args[1])){
+                System.out.println(element);
             }
+            
         }
     }
 
@@ -175,8 +176,8 @@ public class PcapParser {
                 System.out.println("ACK number : " + hexToLong(macAddressToString(ack)));
                
 
-                
-        
+                TCP tcpp=new TCP( sport,dport , macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),hexToLong(macAddressToString(seq)),hexToLong(macAddressToString(ack)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
+                tcps.add(tcpp);
                 the_protocol="TCP";
                 
 
@@ -318,13 +319,100 @@ public class PcapParser {
                         System.out.println(dnsanswer);
                         packets.add(dnsanswer);
 
-                        StringBuilder hexString = new StringBuilder(2 * ethernetFrame.length);
-                        for (byte b : ethernetFrame) {
-                            hexString.append(String.format("%02x", b));
-                        }
+                        StringBuilder dnsString = new StringBuilder(2 * ethernetFrame.length);
+                        System.out.println(ethernetFrame.length);
+                        int endnameindex=-1;
 
-                        // Afficher la représentation hexadécimale
-                        System.out.println(hexString.toString());
+                        byte[] question= new byte[2];
+                        byte[] answer= new byte[2];
+
+                        System.arraycopy(ethernetFrame, 14+ipheaderlength+8+4, question, 0, 2);
+                        System.arraycopy(ethernetFrame, 14+ipheaderlength+8+4+2, answer, 0, 2);
+
+                        int nbquestion=byteArrayToInt(question);
+                        int nbanswer=byteArrayToInt(answer);
+
+                        byte[] questiontype=new byte[2];
+                        byte[] questionclass=new byte[2];
+
+                        int indexendname=-1;
+                        int indexendquestion=-1;
+                        ArrayList<DNSquestion> questions=new ArrayList<DNSquestion>();
+
+                        for(int j=1;j<=nbquestion;j++){
+                            for (int i=14+ipheaderlength+8+12;i<= ethernetFrame.length-1;i++) {
+                                dnsString.append(String.format("%02x", ethernetFrame[i]));
+                                if (i < ethernetFrame.length - 1 && ethernetFrame[i] == 0 && ethernetFrame[i + 1] == 0) {
+                                    indexendname=i;
+                                    indexendquestion=i+5;
+                                    byte[] questionname=new byte[indexendname-14-ipheaderlength-8-12];
+                                    System.arraycopy(ethernetFrame, 14+ipheaderlength+8+12, questionname, 0, indexendname-14-ipheaderlength-8-12);
+                                    System.arraycopy(ethernetFrame, indexendname+1, questiontype, 0, 2);
+                                    System.arraycopy(ethernetFrame, indexendname+3, questionclass, 0, 2);
+                                    System.out.println(hexStringToText(macAddressToString(questionname)));
+                                    System.out.println((macAddressToString(questiontype)));
+                                    System.out.println((macAddressToString(questionclass)));
+
+                                    questions.add(new DNSquestion(hexStringToText(macAddressToString(questionname)), macAddressToString(questiontype),macAddressToString(questionclass)));
+
+                                    break;    
+                                }
+                            }
+                        }
+                        System.out.println(indexendname);
+                        System.out.println(indexendquestion);
+
+                        int indexendanswer=-1;
+                        byte[] answertype=new byte[2];
+                        byte[] answerclass=new byte[2];
+                        
+                        byte[] ttl=new byte[4];
+                        byte[] datalength=new byte[2];
+                        
+                        int curanswer=0;
+                        
+                        for (int k=indexendquestion;k<= ethernetFrame.length-1;k++) {
+                            if(curanswer<nbanswer){
+                            dnsString.append(String.format("%02x", ethernetFrame[k]));
+                            System.out.println("k : " + k);
+                            byte[] questionname=new byte[2];
+                            System.arraycopy(ethernetFrame, k, questionname, 0, 2);
+                            System.arraycopy(ethernetFrame, k+2, answertype, 0, 2);
+                            System.arraycopy(ethernetFrame, k+4, answerclass, 0, 2);
+                            System.arraycopy(ethernetFrame, k+6, ttl, 0, 4);
+                            System.arraycopy(ethernetFrame, k+10, datalength, 0, 2);
+                            
+                            System.out.println(macAddressToString(questionname));
+                            System.out.println((macAddressToString(answertype)));
+                            System.out.println((macAddressToString(answerclass)));
+                            System.out.println((macAddressToString(ttl)));
+                            System.out.println((byteArrayToInt(datalength)));
+
+                            byte[] data=new byte[byteArrayToInt(datalength)];
+                            System.arraycopy(ethernetFrame, indexendquestion+12, data, 0, byteArrayToInt(datalength));
+                            if(byteArrayToInt(datalength)==4){
+                                System.out.println(hexIPToIPAddress(macAddressToString(data)));
+                            }
+                            else if(byteArrayToInt(datalength)==16){
+                                System.out.println(macAddressToString(data));
+                            }
+                            else{
+                                System.out.println(hexStringToText(macAddressToString(data)));
+                            }
+                            
+
+                            k=k+11+byteArrayToInt(datalength);
+
+
+                            //questions.add(new DNSquestion(hexStringToText(macAddressToString(questionname)), macAddressToString(questiontype),macAddressToString(questionclass)));
+                            }
+                            curanswer++;
+                            
+                            
+                        }
+                        
+
+                        System.out.println(dnsString.toString());
 
                         //DNS dnsanswer=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),macAddressToString(quicversion),macAddressToString(cid),macAddressToString(sid), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
                     }
@@ -532,6 +620,18 @@ public class PcapParser {
 
         return textBuilder.toString();
     }
+    public static String hexToString(String hex) {
+        int length = hex.length();
+        StringBuilder texte = new StringBuilder();
+        
+        for (int i = 0; i < length; i += 2) {
+            String paireHex = hex.substring(i, i + 2);
+            int caractere = Integer.parseInt(paireHex, 16);
+            texte.append((char) caractere);
+        }
+        
+        return texte.toString();
+    }
     public static Date convertTimestampToDate(int timestamp) {
         
         return new java.util.Date((long)timestamp*1000);
@@ -592,6 +692,22 @@ public class PcapParser {
                 return "Opcode ARP non reconnu";
         }
     }
+    public static boolean estNombreEntier(String chaine) {
+        try {
+            Integer.parseInt(chaine);
+            return true; // La conversion a réussi, c'est un nombre entier.
+        } catch (NumberFormatException e) {
+            return false; // La conversion a échoué, ce n'est pas un nombre entier.
+        }
+    }
+    public static int byteArrayToInt(byte[] bytes) {
+        int result = 0;
+        for (int i = 0; i < bytes.length; i++) {
+            result = (result << 8) | (bytes[i] & 0xFF);
+        }
+        return result;
+    }
+}
     
 
-}
+
