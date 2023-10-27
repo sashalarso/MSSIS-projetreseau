@@ -338,6 +338,7 @@ public class PcapParser {
                         int indexendname=-1;
                         int indexendquestion=-1;
                         ArrayList<DNSquestion> questions=new ArrayList<DNSquestion>();
+                        ArrayList<DNSanswer> answers=new ArrayList<DNSanswer>();
 
                         for(int j=1;j<=nbquestion;j++){
                             for (int i=14+ipheaderlength+8+12;i<= ethernetFrame.length-1;i++) {
@@ -349,9 +350,9 @@ public class PcapParser {
                                     System.arraycopy(ethernetFrame, 14+ipheaderlength+8+12, questionname, 0, indexendname-14-ipheaderlength-8-12);
                                     System.arraycopy(ethernetFrame, indexendname+1, questiontype, 0, 2);
                                     System.arraycopy(ethernetFrame, indexendname+3, questionclass, 0, 2);
-                                    System.out.println(hexStringToText(macAddressToString(questionname)));
-                                    System.out.println((macAddressToString(questiontype)));
-                                    System.out.println((macAddressToString(questionclass)));
+                                    //System.out.println(hexStringToText(macAddressToString(questionname)));
+                                    //System.out.println((macAddressToString(questiontype)));
+                                    //System.out.println((macAddressToString(questionclass)));
 
                                     questions.add(new DNSquestion(hexStringToText(macAddressToString(questionname)), macAddressToString(questiontype),macAddressToString(questionclass)));
 
@@ -359,8 +360,8 @@ public class PcapParser {
                                 }
                             }
                         }
-                        System.out.println(indexendname);
-                        System.out.println(indexendquestion);
+                        //System.out.println(indexendname);
+                        //System.out.println(indexendquestion);
 
                         int indexendanswer=-1;
                         byte[] answertype=new byte[2];
@@ -374,37 +375,42 @@ public class PcapParser {
                         for (int k=indexendquestion;k<= ethernetFrame.length-1;k++) {
                             if(curanswer<nbanswer){
                             dnsString.append(String.format("%02x", ethernetFrame[k]));
-                            System.out.println("k : " + k);
+                            //System.out.println("k : " + k);
                             byte[] questionname=new byte[2];
                             System.arraycopy(ethernetFrame, k, questionname, 0, 2);
                             System.arraycopy(ethernetFrame, k+2, answertype, 0, 2);
                             System.arraycopy(ethernetFrame, k+4, answerclass, 0, 2);
                             System.arraycopy(ethernetFrame, k+6, ttl, 0, 4);
                             System.arraycopy(ethernetFrame, k+10, datalength, 0, 2);
-                            
+                            /*
                             System.out.println(macAddressToString(questionname));
                             System.out.println((macAddressToString(answertype)));
                             System.out.println((macAddressToString(answerclass)));
                             System.out.println((macAddressToString(ttl)));
                             System.out.println((byteArrayToInt(datalength)));
+                            */
 
                             byte[] data=new byte[byteArrayToInt(datalength)];
                             System.arraycopy(ethernetFrame, indexendquestion+12, data, 0, byteArrayToInt(datalength));
+                            String adress="";
                             if(byteArrayToInt(datalength)==4){
-                                System.out.println(hexIPToIPAddress(macAddressToString(data)));
+                                //System.out.println(hexIPToIPAddress(macAddressToString(data)));
+                                adress=hexIPToIPAddress(macAddressToString(data)).getHostAddress();
                             }
                             else if(byteArrayToInt(datalength)==16){
-                                System.out.println(macAddressToString(data));
+                                //System.out.println(macAddressToString(data));
+                                adress=macAddressToString(data);
                             }
                             else{
-                                System.out.println(hexStringToText(macAddressToString(data)));
+                                //System.out.println(hexStringToText(macAddressToString(data)));
+                                adress=hexStringToText(macAddressToString(data));
                             }
                             
 
                             k=k+11+byteArrayToInt(datalength);
 
 
-                            //questions.add(new DNSquestion(hexStringToText(macAddressToString(questionname)), macAddressToString(questiontype),macAddressToString(questionclass)));
+                            answers.add(new DNSanswer(hexStringToText(macAddressToString(questionname)), macAddressToString(answertype),macAddressToString(answerclass),curanswer+1,byteArrayToInt(ttl),adress));
                             }
                             curanswer++;
                             
@@ -412,8 +418,13 @@ public class PcapParser {
                         }
                         
 
-                        System.out.println(dnsString.toString());
-
+                        //System.out.println(dnsString.toString());
+                        for (DNSquestion element : questions) {
+                            System.out.println(element);
+                        }
+                        for (DNSanswer element : answers) {
+                            System.out.println(element);
+                        }
                         //DNS dnsanswer=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),macAddressToString(quicversion),macAddressToString(cid),macAddressToString(sid), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
                     }
                     
