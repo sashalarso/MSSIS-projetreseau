@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 public class DNS {
     public String packetnumber;
     public String timestamp;
@@ -12,8 +14,10 @@ public class DNS {
     public String dnstype;
     public String dnsclass;
     public String dnsname;
+    public ArrayList<DNSquestion> questions;
+    public ArrayList<DNSanswer> answers;
 
-    public DNS(String sport,String dport,String smacadress,String dmacadress, String sip, String dip,String dnsqr,String dnstype, String dnsclass,String dnsname,String packetnumber,String timestamp,int packetlength){
+    public DNS(String sport,String dport,String smacadress,String dmacadress, String sip, String dip,String dnsqr,String dnstype, String dnsclass,String dnsname,String packetnumber,String timestamp,int packetlength,ArrayList<DNSquestion> questions,ArrayList<DNSanswer> answers){
         this.sport = sport;
         this.dport =  dport;
         this.smacadress= smacadress;
@@ -27,6 +31,8 @@ public class DNS {
         this.packetnumber=packetnumber;
         this.timestamp=timestamp;
         this.packetlength=packetlength;
+        this.questions=questions;
+        this.answers=answers;
     }      
     public String toString(){
         return  "------------------------------------------\n"+
@@ -45,9 +51,9 @@ public class DNS {
                 "--------------Couche application----------\n"+
                 "DNS \n"+
                 this.dnsqr +"\n"+
-                "DNS type : "+this.dnstype+"\n"+
-                "DNS class : "+this.dnsclass+"\n"+
-                "DNS name : "+this.dnsname+ "\n"+
+                
+                "Questions : " +this.questions+"\n"+
+                "Answers : " + this.answers+"\n"+
                 "-------------------------------------------\n";
 
 

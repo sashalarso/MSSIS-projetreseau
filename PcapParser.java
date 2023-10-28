@@ -342,7 +342,9 @@ public class PcapParser {
                             System.out.println("DNS Type : A");
                             dnsType="A";
                         }
-                        DNS dnsquery=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),"DNS query ",dnsClass,dnsType,hexStringToText(macAddressToString(dnsname)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
+                        ArrayList<DNSquestion> questions=new ArrayList<DNSquestion>();
+                        ArrayList<DNSanswer> answers=new ArrayList<DNSanswer>();
+                        DNS dnsquery=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),"DNS query ",dnsClass,dnsType,hexStringToText(macAddressToString(dnsname)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength),questions,answers);
                         System.out.println(dnsquery);
                         packets.add(dnsquery);
                     
@@ -354,9 +356,7 @@ public class PcapParser {
                         System.arraycopy(ethernetFrame, 14+ipheaderlength+8+12, dnsresponse, 0, Integer.reverseBytes(capturedPacketLength)-14-ipheaderlength-8-12);
                         System.out.println(hexStringToText(macAddressToString(dnsresponse))+"\n");
 
-                        DNS dnsanswer=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),"DNS answer","","","", Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-                        System.out.println(dnsanswer);
-                        packets.add(dnsanswer);
+                        
 
                         StringBuilder dnsString = new StringBuilder(2 * ethernetFrame.length);
                         System.out.println(ethernetFrame.length);
@@ -428,6 +428,27 @@ public class PcapParser {
                             System.out.println((macAddressToString(ttl)));
                             System.out.println((byteArrayToInt(datalength)));
                             */
+                            String atype="";
+                            switch(macAddressToString(answertype)){
+                                case "00:1C":
+                                    atype="AAAA";
+                                    break;
+                                case "00:05":
+                                    atype="CNAME";
+                                    break;
+                                case "00:01":
+                                    atype="A";
+                                    break;
+
+                            }
+                            String aclass="";
+                            switch(macAddressToString(answerclass)){
+                                
+                                case "00:01":
+                                    atype="IN";
+                                    break;
+
+                            }
 
                             byte[] data=new byte[byteArrayToInt(datalength)];
                             System.arraycopy(ethernetFrame, indexendquestion+12, data, 0, byteArrayToInt(datalength));
@@ -449,7 +470,7 @@ public class PcapParser {
                             k=k+11+byteArrayToInt(datalength);
 
 
-                            answers.add(new DNSanswer(hexStringToText(macAddressToString(questionname)), macAddressToString(answertype),macAddressToString(answerclass),curanswer+1,byteArrayToInt(ttl),adress));
+                            answers.add(new DNSanswer(hexStringToText(macAddressToString(questionname)), atype,atype,curanswer+1,byteArrayToInt(ttl),adress));
                             }
                             curanswer++;
                             
@@ -458,12 +479,17 @@ public class PcapParser {
                         
 
                         //System.out.println(dnsString.toString());
+                        /*
                         for (DNSquestion element : questions) {
                             System.out.println(element);
                         }
                         for (DNSanswer element : answers) {
                             System.out.println(element);
                         }
+                        */
+                        DNS dnsanswer=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),"DNS answer","","","", Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength),questions,answers);
+                        System.out.println(dnsanswer);
+                        packets.add(dnsanswer);
                         //DNS dnsanswer=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),macAddressToString(quicversion),macAddressToString(cid),macAddressToString(sid), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
                     }
                     

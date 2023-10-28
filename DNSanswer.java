@@ -19,7 +19,7 @@ public class DNSanswer {
     public String toString(){
         return  
                 "Answer number : " + this.number + "\n"+
-                "Name " + this.name +" : \n"+
+                "Name : " + this.name +"\n"+
                 "Type : " + this.type +"\n" +
                 "Class : " + this.dnsclass +"\n"+
                 "TTL : " + this.ttl +"\n"+

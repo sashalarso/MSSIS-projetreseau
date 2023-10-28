@@ -13,7 +13,7 @@ public class DNSquestion {
     public String toString(){
         return  
                 "Query \n" +
-                "Name " + this.name +" : \n"+
+                "Name : " + this.name +"\n"+
                 "Type : " + this.type +"\n" +
                 "Class : " + this.dnsclass +"\n";
                 
