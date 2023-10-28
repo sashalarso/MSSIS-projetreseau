@@ -1,9 +1,11 @@
-public class HTTP {
+import java.util.stream.Stream;
+
+public class HTTP implements tcpstream {
     public String packetnumber;
     public String timestamp;
     public int packetlength;
-    public int sport;
-    public int dport;
+    public String sport;
+    public String dport;
     public String smacadress;
     public String dmacadress;
     public String sip;
@@ -11,7 +13,7 @@ public class HTTP {
     public String httpqr;
     public String httpdata;
 
-    public HTTP(int sport,int dport,String smacadress,String dmacadress, String sip, String dip,String httpqr,String httpdata,String packetnumber,String timestamp,int packetlength){
+    public HTTP(String sport,String dport,String smacadress,String dmacadress, String sip, String dip,String httpqr,String httpdata,String packetnumber,String timestamp,int packetlength){
         this.sport = sport;
         this.dport =  dport;
         this.smacadress= smacadress;
@@ -48,4 +50,29 @@ public class HTTP {
 
 
     }
+
+    @Override
+    public String getpacketnumber() {
+        return this.packetnumber;
+    }
+
+    @Override
+    public String getsourceip() {
+        return this.sip;
+    }
+
+    @Override
+    public String getdestip() {
+        return this.dip;
+    }
+
+    @Override
+    public String getsourceport() {
+        return this.sport;
+    }
+
+    @Override
+    public String getdestport() {
+        return this.dport;
+}
 }

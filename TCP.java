@@ -1,4 +1,4 @@
-public class TCP {
+public class TCP implements tcpstream{
     public String packetnumber;
     public String timestamp;
     public int packetlength;
@@ -46,4 +46,28 @@ public class TCP {
 
 
     }
+    @Override
+    public String getpacketnumber() {
+        return this.packetnumber;
+    }
+
+    @Override
+    public String getsourceip() {
+        return this.sip;
+    }
+
+    @Override
+    public String getdestip() {
+        return this.dip;
+    }
+
+    @Override
+    public String getsourceport() {
+        return this.sport;
+    }
+
+    @Override
+    public String getdestport() {
+        return this.dport;
+}
 }
