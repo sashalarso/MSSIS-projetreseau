@@ -18,7 +18,10 @@ public class PcapParser {
             System.out.println("Protocoles supportés: ARP, ICMP, QUIC, HTTP, DNS, IPV4, TCP, UDP");
             System.out.println("Pour filtrer en fonction du protocole simplement taper après le fichier pcap le protocole en majuscules");
             System.out.println("Exemple de commande : java PcapParser foo.pcap ARP");
-            System.out.println();
+            System.out.println("Pour filtrer en fonction du numéro de paquet simplement taper après le fichier pcap le numéro");
+            System.out.println("Exemple de commande : java PcapParser foo.pcap 25");
+            System.out.println("Pour utiliser le tcp stream entrer -t suivi du numéro de paquet a suivre");
+            System.out.println("Exemple de commande : java PcapParser foo.pcap -t 25");
             System.out.println("Les paquets transitant par IPv6 ne sont pas disponibles, étant donné qu'on ne traite pas ce protocole");
             System.exit(0);
         }
@@ -38,8 +41,7 @@ public class PcapParser {
                 parsePacket(dis, packetNumber);
                 packetNumber++;
             }
-            System.out.println(packets.size());
-            System.out.println(streams.size());
+        
             
             
             
@@ -50,7 +52,10 @@ public class PcapParser {
 
         for (Object element : packets) {
             j=j+1;
-            if(element.getClass().getName().equals(args[1])){
+            if(args.length<2){
+                System.out.println(element);
+            }
+            else if(element.getClass().getName().equals(args[1])){
                 System.out.println(element);
             }
             else if(args[1].equals("")){
@@ -73,10 +78,10 @@ public class PcapParser {
         String portdest="";
         String ipsource="";
         String ipdest="";
-
-        if(args[1].equals("-t")){
+        try {
+            if(args[1].equals("-t")){
             String packetn=args[2];
-            System.out.println(args[2]);
+            
             for (tcpstream element : streams){
                 if (element.getpacketnumber().equals(packetn)){
                     portsource=element.getsourceport();
@@ -87,10 +92,11 @@ public class PcapParser {
                 }
             }
         }
-        System.out.println(ipdest);
-        System.out.println(ipsource);
-        System.out.println(portdest);
-        System.out.println(portsource);
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+        
+       
 
         for(tcpstream element: streams){
             if((element.getsourceport().equals(portsource) || element.getdestport().equals(portsource)) && (element.getsourceport().equals(portdest) || element.getdestport().equals(portdest)) && (element.getsourceip().equals(ipsource) || element.getdestip().equals(ipsource)) && (element.getsourceip().equals(ipdest) || element.getdestip().equals(ipdest))) {
@@ -132,13 +138,9 @@ public class PcapParser {
         int capturedPacketLength = dis.readInt();
         int originalPacketLength = dis.readInt();
         
-        System.out.println();
-        System.out.println("Packet " + packetNumber + ":");
+     
         int date_packet=hexToDecimale(Integer.toHexString(Integer.reverseBytes(timestampSeconds)));
-        System.out.println("Timestamp (seconds): " +  convertTimestampToDate(date_packet));
-        
-        System.out.println("Captured Packet Length: " + (Integer.reverseBytes(capturedPacketLength)));
-        //System.out.println("Original Packet Length: " + originalPacketLength);
+       
 
         
         byte[] ethernetFrame = new byte[Integer.reverseBytes(capturedPacketLength)];
@@ -154,10 +156,7 @@ public class PcapParser {
         System.arraycopy(ethernetFrame, 6, sourceMAC, 0, 6);
         System.arraycopy(ethernetFrame, 12, typeIp, 0, 2);
 
-        System.out.println("-----------Couche liaison--------------");
-        System.out.println("Source MAC Address: " + macAddressToString(sourceMAC));
-        System.out.println("Destination MAC Address: " + macAddressToString(destMAC));
-        System.out.println("Type of IP: " + macAddressToString(typeIp));
+        
         
        
         if (macAddressToString(typeIp).equals("08:00")){
@@ -173,10 +172,7 @@ public class PcapParser {
             System.arraycopy(ethernetFrame, 14+ipheaderlength-4, ipdest, 0, 4);
             System.arraycopy(ethernetFrame, 14+ipheaderlength-8, ipsource, 0, 4);
             System.arraycopy(ethernetFrame, 14+ipheaderlength-11, protocol, 0, 1);
-            System.out.println("-----------Couche réseau--------------");
-            System.out.println("IP source : " + hexIPToIPAddress(macAddressToString(ipsource)) );
-            System.out.println("IP destination : " + hexIPToIPAddress(macAddressToString(ipdest)) );
-            System.out.println("Protocol : " + macAddressToString(protocol));
+           
            
             
             if (macAddressToString(protocol).equals("06")){
@@ -191,10 +187,6 @@ public class PcapParser {
                 System.arraycopy(ethernetFrame, 14+ipheaderlength, sourceport, 0, 2);
                 System.arraycopy(ethernetFrame, 14+ipheaderlength+2, destport, 0, 2);
 
-                System.out.println("-----------Couche transport--------------");
-                System.out.println("Source port : " + hexToDecimal(macAddressToString(sourceport)));
-                System.out.println("Destination port : " + hexToDecimal(macAddressToString(destport)) );
-
                 String sport=Integer.toString(hexToDecimal(macAddressToString(sourceport)));
                 String dport=Integer.toString(hexToDecimal(macAddressToString(destport)));
 
@@ -204,8 +196,7 @@ public class PcapParser {
                 System.arraycopy(ethernetFrame, 14+ipheaderlength+4, seq, 0, 4);
                 System.arraycopy(ethernetFrame, 14+ipheaderlength+8, ack, 0, 4);
 
-                System.out.println("Sequence number : " + hexToLong(macAddressToString(seq)));
-                System.out.println("ACK number : " + hexToLong(macAddressToString(ack)));
+              
                
 
                 TCP tcpp=new TCP( sport,dport , macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),hexToLong(macAddressToString(seq)),hexToLong(macAddressToString(ack)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
@@ -226,18 +217,16 @@ public class PcapParser {
 
                         if (hexStringToText(macAddressToString(httpresponse)).contains("HTTP/1.1")){
                             the_protocol="HTTP";
-                            System.out.println("-----------Couche application--------------");
-                            System.out.println("HTTP response");
-                            System.out.println(hexStringToText(macAddressToString(httpresponse))+"\n");
+                           
 
                             HTTP http=new HTTP(sport, dport, macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(), "HTTP response", hexStringToText(macAddressToString(httpresponse)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-                            System.out.println(http);
+                           
                             packets.add(http);
                             streams.add(http);
                         }
                         else{
                             TCP tcp=new TCP( sport,dport , macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),hexToLong(macAddressToString(seq)),hexToLong(macAddressToString(ack)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-                            System.out.println(tcp);
+                        
                             packets.add(tcp);
                             streams.add(tcp);
                         }
@@ -251,20 +240,19 @@ public class PcapParser {
                         
                         System.arraycopy(ethernetFrame, 14+ipheaderlength+tcpheaderlength, httprequest, 0, Integer.reverseBytes(capturedPacketLength)-14-ipheaderlength-tcpheaderlength);
                         if (hexStringToText(macAddressToString(httprequest)).contains("HTTP/1.1")){
-                            System.out.println("-----------Couche application--------------");
-                            System.out.println("HTTP request");
+                           
                             the_protocol="HTTP";
-                            System.out.println(hexStringToText(macAddressToString(httprequest))+"\n");
+                           
 
                             HTTP http=new HTTP(sport, dport, macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(), "HTTP request", hexStringToText(macAddressToString(httprequest)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-                            System.out.println(http);
+                           
                             packets.add(http);
                             streams.add(http);
                             
                         }
                         else{
                             TCP tcp=new TCP( sport,dport , macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),hexToLong(macAddressToString(seq)),hexToLong(macAddressToString(ack)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-                            System.out.println(tcp);
+                        
                             packets.add(tcp);
                             streams.add(tcp);
                         }
@@ -274,13 +262,13 @@ public class PcapParser {
                 else if(sport.equals("443") || dport.equals("443")){
                     the_protocol="TLS";
                     TCP tcp=new TCP( sport,dport , macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),hexToLong(macAddressToString(seq)),hexToLong(macAddressToString(ack)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-                    System.out.println(tcp);
+                   
                     packets.add(tcp);
                     streams.add(tcp);
                 }
                 else{
                     TCP tcp=new TCP( sport,dport , macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),hexToLong(macAddressToString(seq)),hexToLong(macAddressToString(ack)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-                    System.out.println(tcp);
+                    
                     packets.add(tcp);
                     streams.add(tcp);
                 }
@@ -290,11 +278,10 @@ public class PcapParser {
                 byte[] typeicmp = new byte[1];
                 the_protocol="ICMP";
                 System.arraycopy(ethernetFrame, 34, typeicmp, 0, 1);
-                System.out.println("-----------Couche réseau--------------");
-                System.out.println("ICMP de type " + macAddressToString(typeicmp));
+                
 
                 ICMP icmp=new ICMP( macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),getIcmpCodeMessage(macAddressToString(typeicmp)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-                System.out.println(icmp);
+               
                 packets.add(icmp);
                 
             }
@@ -306,9 +293,6 @@ public class PcapParser {
                 System.arraycopy(ethernetFrame, 14+ipheaderlength+2, destport, 0, 2);
                 String sport=Integer.toString(hexToDecimal(macAddressToString(sourceport)));
                 String dport=Integer.toString(hexToDecimal(macAddressToString(destport)));
-                System.out.println("-----------Couche transport--------------");
-                System.out.println("Source port : " + sport );
-                System.out.println("Destination port : " + dport );
                
                 
 
@@ -321,45 +305,46 @@ public class PcapParser {
                     byte[] dnsclass =new byte [2];
                     byte[] dnstype=new byte[2];
                     byte[] dnsname=new byte[Integer.reverseBytes(capturedPacketLength)-14-ipheaderlength-8-2-2-12];
-                    System.out.println("-----------Couche application--------------");
+                   
                     if (macAddressToString(dnsqr).equals("01:00")){
-                        System.out.println("DNS query");
+                     
                         System.arraycopy(ethernetFrame, Integer.reverseBytes(capturedPacketLength)-2, dnsclass, 0, 2);
                         System.arraycopy(ethernetFrame, Integer.reverseBytes(capturedPacketLength)-4, dnstype, 0, 2);
                         System.arraycopy(ethernetFrame, 14+ipheaderlength+8+12, dnsname, 0, Integer.reverseBytes(capturedPacketLength)-14-ipheaderlength-8-2-2-12);
-                        System.out.println(hexStringToText(macAddressToString(dnsname)));
+                      
                         String dnsType="";
                         String dnsClass="";
                         if (macAddressToString(dnsclass).equals("00:01")){
-                            System.out.println("DNS Class : IN");
+                            
                             dnsClass="IN";
                         }
                         if (macAddressToString(dnstype).equals("00:01")){
-                            System.out.println("DNS Type : AAAA");
+                         
                             dnsType="AAAA";
                         }
                         if (macAddressToString(dnstype).equals("00:1C")){
-                            System.out.println("DNS Type : A");
+                            
                             dnsType="A";
                         }
                         ArrayList<DNSquestion> questions=new ArrayList<DNSquestion>();
                         ArrayList<DNSanswer> answers=new ArrayList<DNSanswer>();
+                        questions.add(new DNSquestion(hexStringToText(macAddressToString(dnsname)) , dnsType, dnsClass));
                         DNS dnsquery=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),"DNS query ",dnsClass,dnsType,hexStringToText(macAddressToString(dnsname)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength),questions,answers);
-                        System.out.println(dnsquery);
+                        
                         packets.add(dnsquery);
                     
                     }
                     else if (macAddressToString(dnsqr).equals("81:80")){
-                        System.out.println("DNS answer");
+                        
                         byte[] dnsresponse =new byte[Integer.reverseBytes(capturedPacketLength)-14-ipheaderlength-8];
 
                         System.arraycopy(ethernetFrame, 14+ipheaderlength+8+12, dnsresponse, 0, Integer.reverseBytes(capturedPacketLength)-14-ipheaderlength-8-12);
-                        System.out.println(hexStringToText(macAddressToString(dnsresponse))+"\n");
+                        
 
                         
 
                         StringBuilder dnsString = new StringBuilder(2 * ethernetFrame.length);
-                        System.out.println(ethernetFrame.length);
+                        
                         int endnameindex=-1;
 
                         byte[] question= new byte[2];
@@ -445,7 +430,7 @@ public class PcapParser {
                             switch(macAddressToString(answerclass)){
                                 
                                 case "00:01":
-                                    atype="IN";
+                                    aclass="IN";
                                     break;
 
                             }
@@ -470,7 +455,7 @@ public class PcapParser {
                             k=k+11+byteArrayToInt(datalength);
 
 
-                            answers.add(new DNSanswer(hexStringToText(macAddressToString(questionname)), atype,atype,curanswer+1,byteArrayToInt(ttl),adress));
+                            answers.add(new DNSanswer(hexStringToText(macAddressToString(questionname)), atype,aclass,curanswer+1,byteArrayToInt(ttl),adress));
                             }
                             curanswer++;
                             
@@ -488,7 +473,7 @@ public class PcapParser {
                         }
                         */
                         DNS dnsanswer=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),"DNS answer","","","", Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength),questions,answers);
-                        System.out.println(dnsanswer);
+                       
                         packets.add(dnsanswer);
                         //DNS dnsanswer=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),macAddressToString(quicversion),macAddressToString(cid),macAddressToString(sid), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
                     }
@@ -505,10 +490,10 @@ public class PcapParser {
                     System.arraycopy(ethernetFrame, 14+ipheaderlength+8, quicheader, 0, 1);
                     
                     int firstBit = (Character.getNumericValue(macAddressToString(quicheader).charAt(0)) >> 3) & 1;
-                    System.out.println("-----------Couche application--------------");
+                   
                     if(firstBit==0){
                         QUIC quic=new QUIC( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),"","","", Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-                        System.out.println(quic);
+                       
                         packets.add(quic);
                     }
                     else if(firstBit==1){
@@ -520,7 +505,7 @@ public class PcapParser {
                         System.arraycopy(ethernetFrame, 14+ipheaderlength+8+1+4, cidlength, 0, 1);
 
                         
-                        System.out.println("QUIC version : " + macAddressToString(quicversion));
+                        
                         String quicVersion="";
                         if(macAddressToString(quicversion).equals("00:00:00:01")){
                             quicVersion="1";
@@ -530,17 +515,17 @@ public class PcapParser {
 
                         byte[] cid=new byte[hexToDecimale(macAddressToString(cidlength))];
                         System.arraycopy(ethernetFrame, 14+ipheaderlength+8+1+4+1, cid, 0, hexToDecimale(macAddressToString(cidlength)));
-                        System.out.println("Destination Connection ID : "+ macAddressToString(cid));
+                        
 
                         byte[] sidlength=new byte[1];
                         System.arraycopy(ethernetFrame, 14+ipheaderlength+8+1+4+1+hexToDecimale(macAddressToString(cidlength)), sidlength, 0, 1);
                         
                         byte[] sid=new byte[hexToDecimale(macAddressToString(sidlength))];
                         System.arraycopy(ethernetFrame, 14+ipheaderlength+8+1+4+1+hexToDecimale(macAddressToString(cidlength))+1, sid, 0, hexToDecimale(macAddressToString(sidlength)));
-                        System.out.println("Source Connection ID : "+ macAddressToString(sid));
+                        
 
                         QUIC quic=new QUIC( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),quicVersion,macAddressToString(cid),macAddressToString(sid), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-                        System.out.println(quic);
+                        
                         packets.add(quic);
                     }
                     
@@ -559,16 +544,15 @@ public class PcapParser {
                     System.out.println("-----------Couche application--------------");
                     if (macAddressToString(dhcpqr).equals("01")){
 
-                        System.out.println("DHCP request");
+                        
                     }
                     if (macAddressToString(dhcpqr).equals("02")){
-                        System.out.println("DHCP reply");
+                        
                     }
-                    System.out.println("DHCP client adress : " + hexIPToIPAddress(macAddressToString(dhcpclient)));
-                    System.out.println("DHCP server adress : " + hexIPToIPAddress(macAddressToString(dhcpserver)));
+                   
 
                     DHCP dhcp=new DHCP( (hexToDecimal(macAddressToString(sourceport))),(hexToDecimal(macAddressToString(destport))) , macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),macAddressToString(dhcpqr),hexIPToIPAddress(macAddressToString(dhcpclient)).getHostAddress(),hexIPToIPAddress(macAddressToString(dhcpserver)).getHostAddress(), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-                    System.out.println(dhcp);
+                    
                     packets.add(dhcp);
                 }
                 
@@ -593,24 +577,19 @@ public class PcapParser {
             System.arraycopy(ethernetFrame, 32, macdest,0, 6);
             System.arraycopy(ethernetFrame, 38, ipdest,0, 4);
 
-            System.out.println("-----------Couche réseau--------------");
-            System.out.println("ARP de type " + macAddressToString(typearp));
-            System.out.println("MAC source : " + macAddressToString(macsource));
-            System.out.println("MAC dest : " + macAddressToString(macdest));
-            System.out.println("IP source : " + hexIPToIPAddress(macAddressToString(ipsource)));
-            System.out.println("IP dest : " + hexIPToIPAddress(macAddressToString(ipdest)));
+           
             
 
             the_protocol="ARP";
             ARP arp=new ARP( macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),getArpOpcodeMessage(macAddressToString(typearp)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
-            System.out.println(arp);
+            
             packets.add(arp);
         }
-        System.out.println("--------------------------------------");
+        
 
         
 
-        System.out.println(the_protocol);
+       
 
     }
 
