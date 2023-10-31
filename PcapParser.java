@@ -382,7 +382,7 @@ public class PcapParser {
                                     System.arraycopy(ethernetFrame, indexendname+3, questionclass, 0, 2);
                                    
                                     questions.add(new DNSquestion(hexStringToText(macAddressToString(questionname)), macAddressToString(questiontype),macAddressToString(questionclass)));
-
+                                    lastname=hexStringToText(macAddressToString(questionname));
                                     break;    
                                 }
                             }
@@ -408,6 +408,12 @@ public class PcapParser {
                             System.arraycopy(ethernetFrame, k+6, ttl, 0, 4);
                             System.arraycopy(ethernetFrame, k+10, datalength, 0, 2);
                             String atype="";
+                            String qname="";
+                            if(macAddressToString(questionname).length()==5){
+                                    
+                                    qname=lastname;
+                                    
+                                }
                             switch(macAddressToString(answertype)){
                                 case "00:1C":
                                     atype="AAAA";
@@ -450,7 +456,7 @@ public class PcapParser {
                             indexendanswer=k;
 
 
-                            answers.add(new DNSanswer(hexStringToText(macAddressToString(questionname)), atype,aclass,curanswer+1,byteArrayToInt(ttl),adress));
+                            answers.add(new DNSanswer(qname, atype,aclass,curanswer+1,byteArrayToInt(ttl),adress));
                             }
                             curanswer++;
                             
@@ -464,6 +470,8 @@ public class PcapParser {
                         byte[] authottl=new byte[4];
                         byte[] authoname=new byte[2];
 
+                        String authname="";
+
                         for(int l=indexendanswer+1;l<ethernetFrame.length-1;l++){
                             if(curauthority<nbauthority){
                                 curauthority++;
@@ -471,6 +479,11 @@ public class PcapParser {
                                 System.arraycopy(ethernetFrame, l+2, authotype, 0, 2);
                                 System.arraycopy(ethernetFrame, l+4, authoclass, 0, 2);
                                 System.arraycopy(ethernetFrame, l+6, authottl, 0, 4);
+                                byte[] pointer=new byte[1];
+                                if(macAddressToString(authoname).length()==5){
+                                    System.arraycopy(ethernetFrame, l+1, pointer, 0, 1);
+                                    authname=lastname;
+                                }
 
                                 String authtype="";
                                 switch(macAddressToString(authotype)){
@@ -502,7 +515,7 @@ public class PcapParser {
                                 System.out.println(authclass);
                                 System.out.println(byteArrayToInt(authottl));
                                 */
-                                authoritatives.add(new DNSauthoritative(macAddressToString(authoname), authtype, authclass, curauthority, byteArrayToInt(authottl)));
+                                authoritatives.add(new DNSauthoritative(authname, authtype, authclass, curauthority, byteArrayToInt(authottl)));
                                 
                             }
                         }
