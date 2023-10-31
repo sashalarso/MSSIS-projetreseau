@@ -16,8 +16,9 @@ public class DNS {
     public String dnsname;
     public ArrayList<DNSquestion> questions;
     public ArrayList<DNSanswer> answers;
+    public ArrayList<DNSauthoritative> authoritatives;
 
-    public DNS(String sport,String dport,String smacadress,String dmacadress, String sip, String dip,String dnsqr,String dnstype, String dnsclass,String dnsname,String packetnumber,String timestamp,int packetlength,ArrayList<DNSquestion> questions,ArrayList<DNSanswer> answers){
+    public DNS(String sport,String dport,String smacadress,String dmacadress, String sip, String dip,String dnsqr,String dnstype, String dnsclass,String dnsname,String packetnumber,String timestamp,int packetlength,ArrayList<DNSquestion> questions,ArrayList<DNSanswer> answers,ArrayList<DNSauthoritative> authoritatives){
         this.sport = sport;
         this.dport =  dport;
         this.smacadress= smacadress;
@@ -33,6 +34,7 @@ public class DNS {
         this.packetlength=packetlength;
         this.questions=questions;
         this.answers=answers;
+        this.authoritatives=authoritatives;
     }      
     public String toString(){
         return  "------------------------------------------\n"+
@@ -54,6 +56,7 @@ public class DNS {
                 
                 "Questions : " +this.questions+"\n"+
                 "Answers : " + this.answers+"\n"+
+                "Authoritatives : " + this.authoritatives+"\n"+
                 "-------------------------------------------\n";
 
 

@@ -41,7 +41,7 @@ public class DHCP {
                 "Destination port : " + this.dport + "\n"+
                 "--------------Couche application----------\n"+
                 "DHCP \n"+
-                this.dhcpqr +"\n"+
+                "DHCP Message type : " +this.dhcpqr +"\n"+
                 "DHCP client : "+this.dhcpclient+"\n"+
                 "DHCP server : "+this.dhcpserver+"\n"+
                 "-------------------------------------------\n";

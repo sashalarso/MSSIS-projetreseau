@@ -293,7 +293,8 @@ public class PcapParser {
                 System.arraycopy(ethernetFrame, 14+ipheaderlength+2, destport, 0, 2);
                 String sport=Integer.toString(hexToDecimal(macAddressToString(sourceport)));
                 String dport=Integer.toString(hexToDecimal(macAddressToString(destport)));
-               
+
+                String lastname="";              
                 
 
                 if(sport.equals("53") || dport.equals("53")){
@@ -328,8 +329,9 @@ public class PcapParser {
                         }
                         ArrayList<DNSquestion> questions=new ArrayList<DNSquestion>();
                         ArrayList<DNSanswer> answers=new ArrayList<DNSanswer>();
+                        ArrayList<DNSauthoritative> authoritatives=new ArrayList<DNSauthoritative>();
                         questions.add(new DNSquestion(hexStringToText(macAddressToString(dnsname)) , dnsType, dnsClass));
-                        DNS dnsquery=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),"DNS query ",dnsClass,dnsType,hexStringToText(macAddressToString(dnsname)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength),questions,answers);
+                        DNS dnsquery=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),"DNS query ",dnsClass,dnsType,hexStringToText(macAddressToString(dnsname)), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength),questions,answers,authoritatives);
                         
                         packets.add(dnsquery);
                     
@@ -349,12 +351,15 @@ public class PcapParser {
 
                         byte[] question= new byte[2];
                         byte[] answer= new byte[2];
+                        byte[] authority=new byte[2];
 
                         System.arraycopy(ethernetFrame, 14+ipheaderlength+8+4, question, 0, 2);
                         System.arraycopy(ethernetFrame, 14+ipheaderlength+8+4+2, answer, 0, 2);
+                        System.arraycopy(ethernetFrame, 14+ipheaderlength+8+4+2+2, authority, 0, 2);
 
                         int nbquestion=byteArrayToInt(question);
                         int nbanswer=byteArrayToInt(answer);
+                        int nbauthority=byteArrayToInt(authority);
 
                         byte[] questiontype=new byte[2];
                         byte[] questionclass=new byte[2];
@@ -363,6 +368,7 @@ public class PcapParser {
                         int indexendquestion=-1;
                         ArrayList<DNSquestion> questions=new ArrayList<DNSquestion>();
                         ArrayList<DNSanswer> answers=new ArrayList<DNSanswer>();
+                        ArrayList<DNSauthoritative> authoritatives=new ArrayList<DNSauthoritative>();
 
                         for(int j=1;j<=nbquestion;j++){
                             for (int i=14+ipheaderlength+8+12;i<= ethernetFrame.length-1;i++) {
@@ -441,6 +447,7 @@ public class PcapParser {
                             
 
                             k=k+11+byteArrayToInt(datalength);
+                            indexendanswer=k;
 
 
                             answers.add(new DNSanswer(hexStringToText(macAddressToString(questionname)), atype,aclass,curanswer+1,byteArrayToInt(ttl),adress));
@@ -449,9 +456,60 @@ public class PcapParser {
                             
                             
                         }
+                        int curauthority=0;
+
+                        byte[] authotype=new byte[2];
+                        byte[] authoclass=new byte[2];
+                        
+                        byte[] authottl=new byte[4];
+                        byte[] authoname=new byte[2];
+
+                        for(int l=indexendanswer+1;l<ethernetFrame.length-1;l++){
+                            if(curauthority<nbauthority){
+                                curauthority++;
+                                System.arraycopy(ethernetFrame, l, authoname, 0, 2);
+                                System.arraycopy(ethernetFrame, l+2, authotype, 0, 2);
+                                System.arraycopy(ethernetFrame, l+4, authoclass, 0, 2);
+                                System.arraycopy(ethernetFrame, l+6, authottl, 0, 4);
+
+                                String authtype="";
+                                switch(macAddressToString(authotype)){
+                                    case "00:1C":
+                                        authtype="AAAA";
+                                        break;
+                                    case "00:05":
+                                        authtype="CNAME";
+                                        break;
+                                    case "00:01":
+                                        authtype="A";
+                                        break;
+                                    case "00:06":
+                                        authtype="SOA";
+                                        break;
+
+                                }
+                                String authclass="";
+                                switch(macAddressToString(authoclass)){
+                                    
+                                    case "00:01":
+                                        authclass="IN";
+                                        break;
+
+                                }
+                                /*
+                                System.out.println(macAddressToString(authoname));
+                                System.out.println(authtype);
+                                System.out.println(authclass);
+                                System.out.println(byteArrayToInt(authottl));
+                                */
+                                authoritatives.add(new DNSauthoritative(macAddressToString(authoname), authtype, authclass, curauthority, byteArrayToInt(authottl)));
+                                
+                            }
+                        }
+
                         
 
-                                                DNS dnsanswer=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),"DNS answer","","","", Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength),questions,answers);
+                        DNS dnsanswer=new DNS( sport,dport ,macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),"DNS answer","","","", Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength),questions,answers,authoritatives);
                        
                         packets.add(dnsanswer);
                         
@@ -520,7 +578,7 @@ public class PcapParser {
                     System.arraycopy(ethernetFrame, 54, dhcpclient, 0, 4);
                     System.arraycopy(ethernetFrame, 62, dhcpserver, 0, 4);
                     
-                    System.out.println("-----------Couche application--------------");
+                   
                     if (macAddressToString(dhcpqr).equals("01")){
 
                         
@@ -530,7 +588,7 @@ public class PcapParser {
                     }
                    
 
-                    DHCP dhcp=new DHCP( (hexToDecimal(macAddressToString(sourceport))),(hexToDecimal(macAddressToString(destport))) , macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),macAddressToString(dhcpqr),hexIPToIPAddress(macAddressToString(dhcpclient)).getHostAddress(),hexIPToIPAddress(macAddressToString(dhcpserver)).getHostAddress(), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
+                    DHCP dhcp=new DHCP( (hexToDecimal(macAddressToString(sourceport))),(hexToDecimal(macAddressToString(destport))) , macAddressToString(sourceMAC), macAddressToString(destMAC), hexIPToIPAddress(macAddressToString(ipsource)).getHostAddress(), hexIPToIPAddress(macAddressToString(ipdest)).getHostAddress(),getDHCPMessage(macAddressToString(dhcpqr)),hexIPToIPAddress(macAddressToString(dhcpclient)).getHostAddress(),hexIPToIPAddress(macAddressToString(dhcpserver)).getHostAddress(), Integer.toString(packetNumber), convertTimestampToDate(date_packet).toString(), Integer.reverseBytes(capturedPacketLength));
                     
                     packets.add(dhcp);
                 }                               
@@ -717,6 +775,17 @@ public class PcapParser {
            
             default:
                 return "Opcode ARP non reconnu";
+        }
+    }
+    public static String getDHCPMessage(String dhcpcode) {
+        switch (dhcpcode) {
+            case "01":
+                return "Boot request";
+            case "02":
+                return "Boot reply";
+            
+            default:
+                return "Message DHCP non reconnu";
         }
     }
     public static boolean estNombreEntier(String chaine) {
