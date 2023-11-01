@@ -319,7 +319,7 @@ public class PcapParser {
                             
                             dnsClass="IN";
                         }
-                        System.out.println(macAddressToString(dnstype));
+                        
                         
                         if (macAddressToString(dnstype).equals("00:01")){
                          
