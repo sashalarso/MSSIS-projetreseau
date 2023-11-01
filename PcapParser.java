@@ -319,13 +319,19 @@ public class PcapParser {
                             
                             dnsClass="IN";
                         }
+                        System.out.println(macAddressToString(dnstype));
+                        
                         if (macAddressToString(dnstype).equals("00:01")){
                          
                             dnsType="AAAA";
                         }
-                        if (macAddressToString(dnstype).equals("00:1C")){
+                        else if (macAddressToString(dnstype).equals("00:1C")){
                             
                             dnsType="A";
+                        }
+                        else if (macAddressToString(dnstype).equals("00:0F")){
+                            
+                            dnsType="MX";
                         }
                         ArrayList<DNSquestion> questions=new ArrayList<DNSquestion>();
                         ArrayList<DNSanswer> answers=new ArrayList<DNSanswer>();
@@ -380,8 +386,31 @@ public class PcapParser {
                                     System.arraycopy(ethernetFrame, 14+ipheaderlength+8+12, questionname, 0, indexendname-14-ipheaderlength-8-12);
                                     System.arraycopy(ethernetFrame, indexendname+1, questiontype, 0, 2);
                                     System.arraycopy(ethernetFrame, indexendname+3, questionclass, 0, 2);
-                                   
-                                    questions.add(new DNSquestion(hexStringToText(macAddressToString(questionname)), macAddressToString(questiontype),macAddressToString(questionclass)));
+                                    String qtype="";
+                                    switch((macAddressToString(questiontype))){
+                                        case "00:1C":
+                                            qtype="AAAA";
+                                            break;
+                                        case "00:05":
+                                            qtype="CNAME";
+                                            break;
+                                        case "00:01":
+                                            qtype="A";
+                                            break;
+                                        case "00:0F":
+                                            qtype="MX";
+                                            break;
+
+                                    }
+                                    String qclass="";
+                                    switch(macAddressToString(questionclass)){
+                                        
+                                        case "00:01":
+                                            qclass="IN";
+                                            break;
+
+                                    }
+                                    questions.add(new DNSquestion(hexStringToText(macAddressToString(questionname)), qtype,qclass));
                                     lastname=hexStringToText(macAddressToString(questionname));
                                     break;    
                                 }
@@ -423,6 +452,9 @@ public class PcapParser {
                                     break;
                                 case "00:01":
                                     atype="A";
+                                    break;
+                                case "00:0F":
+                                    atype="MX";
                                     break;
 
                             }
