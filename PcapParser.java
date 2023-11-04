@@ -697,7 +697,7 @@ public class PcapParser {
             return Integer.parseInt(hex.replace(":", ""), 16);
         } catch (NumberFormatException e) {
             e.printStackTrace();
-            return -1; // Remplacer par une valeur de gestion d'erreur appropriée
+            return -1; 
         }
     }
     public static Long hexToLong(String hex) {
@@ -705,7 +705,7 @@ public class PcapParser {
             return Long.parseLong(hex.replace(":", ""), 16);
         } catch (NumberFormatException e) {
             e.printStackTrace();
-            return null; // Remplacer par une valeur de gestion d'erreur appropriée
+            return null;
         }
     }
     public static InetAddress hexIPToIPAddress(String hexIP) {
@@ -768,17 +768,17 @@ public class PcapParser {
     }
     public static int hexToDecimale(String hex) {
         try {
-            // Utilisez Integer.parseInt avec la base 16 (hexadécimal)
+           
             int decimal = Integer.parseInt(hex, 16);
             return decimal;
         } catch (NumberFormatException e) {
             e.printStackTrace();
-            return -1; // Gestion de l'erreur
+            return -1; 
         }
     }
     public static String reverseString(String input) {
         if (input == null) {
-            return null; // Gestion du cas où la chaîne est null
+            return null; 
         }
         
         int length = input.length();
