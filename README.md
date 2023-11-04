@@ -1,4 +1,4 @@
-Compilation `javac PcapParser.java`
+Compilation `javac src/PcapParser.java`
 
 Obtenir de l'aide `java PcapParser help`
 
